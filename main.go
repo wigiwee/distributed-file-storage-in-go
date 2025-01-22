@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"time"
 
 	"dfs/p2p"
 )
@@ -18,20 +18,26 @@ func main() {
 		ListenAddr:    ":3000",
 		HandShakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
-		OnPeer:        OnPeer,
+		//todo : onpeer func
 	}
 
-	tr := p2p.NewTCPTransport(tcpOpts)
+	tcpTransport := p2p.NewTCPTransport(tcpOpts)
+
+	FileServerOpts := FileServerOpts{
+		storageRoot:       "/home/happypotter/dfs",
+		PathTransformFunc: CASPathTransformFunc,
+		Transport:         tcpTransport,
+	}
+
+	s := NewFileServer(FileServerOpts)
+
 	go func() {
-		for {
-			msg := <-tr.Consume()
-			fmt.Printf("%+v \n", msg)
-		}
+		time.Sleep(time.Second * 3)
+		s.Stop()
 	}()
 
-	if err := tr.ListenAndAccept(); err != nil {
+	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}
 
-	select {}
 }

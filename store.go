@@ -4,15 +4,21 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"io"
 	"log"
 	"os"
 	"strings"
 )
 
+const defaultRootFolder = "/home/happypotter/dfs"
+
 type PathTransformFunc func(string) PathKey
 
 type StoreOpts struct {
+	//Root is the folder path to the root on the disk containing all the
+	//folder structure
+	Root string
 	PathTransformFunc
 }
 
@@ -53,6 +59,13 @@ type Store struct {
 }
 
 func NewStore(opts StoreOpts) *Store {
+	if opts.PathTransformFunc == nil {
+		opts.PathTransformFunc = DefaultPathTransformFunc
+	}
+	if len(opts.Root) == 0 {
+		opts.Root = defaultRootFolder
+	}
+
 	return &Store{
 		StoreOpts: opts,
 	}
@@ -60,19 +73,20 @@ func NewStore(opts StoreOpts) *Store {
 
 func (s *Store) Has(key string) bool {
 	PathKey := s.PathTransformFunc(key)
-	_, err := os.Stat(PathKey.FilePath())
-	if err == os.ErrNotExist {
-		return false
-	}
-	return true
+	_, err := os.Stat(s.Root + string(os.PathSeparator) + PathKey.FilePath())
+	return !errors.Is(err, os.ErrNotExist)
+}
+
+func (s *Store) Clear() error {
+	return os.RemoveAll(s.Root)
 }
 
 func (s *Store) Delete(key string) error {
 	pathKey := s.PathTransformFunc(key)
 	defer func() {
-		log.Printf("delted [%s] from disk", pathKey.fileName)
+		log.Printf("delted [%s] from disk", s.Root+string(os.PathSeparator)+pathKey.FilePath())
 	}()
-	return os.RemoveAll(pathKey.FilePath())
+	return os.RemoveAll(s.Root + string(os.PathSeparator) + pathKey.FilePath())
 }
 
 func (s *Store) Read(key string) (io.Reader, error) {
@@ -88,22 +102,26 @@ func (s *Store) Read(key string) (io.Reader, error) {
 	return buf, err
 }
 
+func (s *Store) Write(key string, r io.Reader) error {
+	return s.writeStream(key, r)
+}
+
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
 	pathkey := s.PathTransformFunc(key)
-	return os.Open(pathkey.FilePath())
+	return os.Open(s.Root + string(os.PathSeparator) + pathkey.FilePath())
 }
 
 func (s *Store) writeStream(key string, r io.Reader) error {
 
 	pathKey := s.PathTransformFunc(key)
 
-	if err := os.MkdirAll(pathKey.pathName, os.ModePerm); err != nil {
+	if err := os.MkdirAll(s.Root+string(os.PathSeparator)+pathKey.pathName, os.ModePerm); err != nil {
 		return err
 	}
 
 	FilePath := pathKey.FilePath()
 
-	f, err := os.Create(FilePath)
+	f, err := os.Create(s.Root + string(os.PathSeparator) + FilePath)
 
 	if err != nil {
 		return err

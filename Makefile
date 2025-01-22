@@ -1,8 +1,12 @@
 build:
-	@go build -o ./bin/fs
+	@go build -o ./bin/dfs
 
 run : build
 	@./bin/dfs
 
 test :
-	@go test ./... -v
+	@go test ./...
+
+#verbose test
+testv :
+	@go test ./... -v 

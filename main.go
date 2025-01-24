@@ -17,7 +17,7 @@ func OnPeer(peer p2p.Peer) error {
 
 func makeServer(listenAddr, root string, nodes ...string) *FileServer {
 
-	tcpOpts := p2p.TCPTransportOpts{
+	tcpOpts := &p2p.TCPTransportOpts{
 		ListenAddr:    listenAddr,
 		HandShakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
@@ -25,15 +25,15 @@ func makeServer(listenAddr, root string, nodes ...string) *FileServer {
 
 	tcpTransport := p2p.NewTCPTransport(tcpOpts)
 
-	FileServerOpts := FileServerOpts{
+	FileServerOpts := &FileServerOpts{
 		storageRoot:       root + string(os.PathSeparator) + "network_" + listenAddr,
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         tcpTransport,
 		BootstrapNodes:    nodes,
 	}
-
 	s := NewFileServer(FileServerOpts)
-	tcpOpts.OnPeer = s.OnPeer
+	tcpTransport.OnPeer = s.OnPeer
+
 	return s
 
 }
@@ -46,7 +46,7 @@ func main() {
 
 	go s2.Start()
 	time.Sleep(2 * time.Second)
-	data := bytes.NewReader([]byte("lkjsdfj"))
+	data := bytes.NewReader([]byte("my big data file here"))
 	s2.StoreData("myPrivateData", data)
 
 	select {}

@@ -84,7 +84,7 @@ func (s *Store) Clear() error {
 func (s *Store) Delete(key string) error {
 	pathKey := s.PathTransformFunc(key)
 	defer func() {
-		log.Printf("delted [%s] from disk", s.Root+string(os.PathSeparator)+pathKey.FilePath())
+		log.Printf("deleted [%s] from disk", s.Root+string(os.PathSeparator)+pathKey.FilePath())
 	}()
 	return os.RemoveAll(s.Root + string(os.PathSeparator) + pathKey.FilePath())
 }

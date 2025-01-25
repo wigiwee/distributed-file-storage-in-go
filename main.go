@@ -1,7 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -38,16 +39,25 @@ func makeServer(listenAddr, root string, nodes ...string) *FileServer {
 
 }
 func main() {
-	s1 := makeServer(":3000", "/home/happypotter/dfs")
-	s2 := makeServer(":4000", "/home/happypotter/dfs", ":3000")
+	s1 := makeServer(":3000", "./")
+	s2 := makeServer(":4000", "./", ":3000")
 	go func() {
 		log.Fatal(s1.Start())
 	}()
 
 	go s2.Start()
 	time.Sleep(2 * time.Second)
-	data := bytes.NewReader([]byte("my big data file here"))
-	s2.StoreData("myPrivateData", data)
+	// data := bytes.NewReader([]byte("my big data file here"))
+	// s2.Store("myPrivateData", data)
 
+	r, err := s2.Get("myPrivateData")
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, err := io.ReadAll(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(b))
 	select {}
 }

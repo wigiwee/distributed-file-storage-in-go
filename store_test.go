@@ -29,7 +29,7 @@ func TestStore(t *testing.T) {
 	key := "mybestpicturessdf"
 	data := []byte("some jpg")
 
-	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+	if _, err := s.writeStream(key, bytes.NewReader(data)); err != nil {
 		t.Error(err)
 	}
 

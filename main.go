@@ -47,10 +47,17 @@ func main() {
 
 	go s2.Start()
 	time.Sleep(2 * time.Second)
-	// data := bytes.NewReader([]byte("my big data file here"))
-	// s2.Store("myPrivateData", data)
 
-	r, err := s2.Get("myPrivateData")
+	// for i := 0; i < 1; i++ {
+	// 	bufBytes := make([]byte, rand.Intn(50)+10)
+	// 	rand.Read(bufBytes)
+	// 	data := bytes.NewReader(bufBytes)
+	// 	s2.Store(fmt.Sprintf("myPrivateData_%d", i), data)
+	// 	// time.Sleep(3 * time.Millisecond)
+	// }
+
+	// s2.Store("myPrivateData", bytes.NewReader([]byte("this is some big data")))
+	r, err := s2.Get("fmyPrivateData")
 	if err != nil {
 		log.Fatal(err)
 	}

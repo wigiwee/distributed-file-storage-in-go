@@ -89,26 +89,39 @@ func (s *Store) Delete(key string) error {
 	return os.RemoveAll(s.Root + string(os.PathSeparator) + pathKey.FilePath())
 }
 
-func (s *Store) Read(key string) (io.Reader, error) {
-	f, err := s.readStream(key)
+// todo : instread of copying directly to the reader we first copy this into
+// a bffer, maybe just return the file from readStream
+func (s *Store) Read(key string) (int64, io.Reader, error) {
+	n, f, err := s.readStream(key)
 	if err != nil {
-		return nil, err
+		return n, nil, err
 	}
 	defer f.Close()
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, f)
 
-	return buf, err
+	return n, buf, err
 }
 
 func (s *Store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
 
-func (s *Store) readStream(key string) (io.ReadCloser, error) {
+func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
 	pathkey := s.PathTransformFunc(key)
-	return os.Open(s.Root + string(os.PathSeparator) + pathkey.FilePath())
+
+	file, err := os.Open(s.Root + string(os.PathSeparator) + pathkey.FilePath())
+	if err != nil {
+		return 0, nil, err
+	}
+
+	fi, err := file.Stat()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return fi.Size(), file, nil
 }
 
 func (s *Store) writeStream(key string, r io.Reader) (int64, error) {

@@ -11,7 +11,7 @@ func TestPathTransformFunc(t *testing.T) {
 	key := "mybestpictures"
 
 	expectedPathname := "7037c/79055/7f0d8/61c53/d3bbd/1fafe/02dc3/699e6"
-	expectedOriginalKey := "7037c790557f0d861c53d3bbd1fafe02dc3699e6"
+	expectedOriginalKey := "703 7c790557f0d861c53d3bbd1fafe02dc3699e6"
 
 	path := CASPathTransformFunc(key)
 	if path.pathName != expectedPathname {

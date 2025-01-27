@@ -11,7 +11,7 @@ func TestPathTransformFunc(t *testing.T) {
 	key := "mybestpictures"
 
 	expectedPathname := "7037c/79055/7f0d8/61c53/d3bbd/1fafe/02dc3/699e6"
-	expectedOriginalKey := "703 7c790557f0d861c53d3bbd1fafe02dc3699e6"
+	expectedOriginalKey := "7037c790557f0d861c53d3bbd1fafe02dc3699e6"
 
 	path := CASPathTransformFunc(key)
 	if path.pathName != expectedPathname {
@@ -39,7 +39,7 @@ func TestStore(t *testing.T) {
 	if ok := s.Has("mybestpicture2"); ok {
 		t.Errorf("expected to not have key %s", "mybestpicture2")
 	}
-	r, err := s.Read(key)
+	_, r, err := s.Read(key)
 	if err != nil {
 		t.Error(err)
 	}

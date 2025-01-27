@@ -259,6 +259,10 @@ func (fs *FileServer) handleMessageGetFile(from string, msg MessageGetFile) erro
 		return err
 	}
 
+	if rc, ok := r.(io.ReadCloser); ok {
+		defer rc.Close()
+	}
+
 	//first send incoming stream byte to the peer and then we can send the file size
 	// as an int64
 	peer.Send([]byte{p2p.IncomingStream})

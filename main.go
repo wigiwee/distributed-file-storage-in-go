@@ -57,7 +57,7 @@ func main() {
 	// }
 
 	// s2.Store("myPrivateData", bytes.NewReader([]byte("this is some big data")))
-	r, err := s2.Get("fmyPrivateData")
+	r, err := s2.Get("myPrivateData")
 	if err != nil {
 		log.Fatal(err)
 	}

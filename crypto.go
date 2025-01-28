@@ -26,31 +26,32 @@ func copyDecrypt(key []byte, src io.Reader, dest io.Writer) (int, error) {
 	if _, err := src.Read(iv); err != nil {
 		return 0, err
 	}
-	var (
-		buf    = make([]byte, 32*1024) // 32 * 1024 is size of io reader/writer buffer
-		stream = cipher.NewCTR(block, iv)
-		nw     = block.BlockSize()
-	)
+	stream := cipher.NewCTR(block, iv)
+	return copyStream(stream, block.BlockSize(), src, dest)
 
-	for {
-		n, err := src.Read(buf)
-		if n > 0 {
-			stream.XORKeyStream(buf, buf[:n])
-			nWritten, err := dest.Write(buf)
-			if err != nil {
-				return 0, err
-			}
-			nw += nWritten
-		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return 0, err
+	// var (
+	// 	buf    = make([]byte, 1) // 32 * 1024 is size of io reader/writer buffer
+	// 	nw     = block.BlockSize()
+	// )
 
-		}
-	}
-	return nw, err
+	// for {
+	// 	n, err := src.Read(buf)
+	// 	if n > 0 {
+	// 		stream.XORKeyStream(buf, buf[:n])
+	// 		nWritten, err := dest.Write(buf)
+	// 		if err != nil {
+	// 			return 0, err
+	// 		}
+	// 		nw += nWritten
+	// 	}
+	// 	if err != nil {
+	// 		if err == io.EOF {
+	// 			break
+	// 		}
+	// 		return 0, err
+	// 	}
+	// }
+	// return nw, err
 }
 
 func copyEncrypt(key []byte, src io.Reader, dest io.Writer) (int, error) {
@@ -69,25 +70,37 @@ func copyEncrypt(key []byte, src io.Reader, dest io.Writer) (int, error) {
 		return 0, err
 	}
 
+	stream := cipher.NewCTR(block, iv)
+	// var (
+	// 	buf    = make([]byte, 32*1024) // 32 * 1024 is size of io reader/writer buffer
+	// 	nw     = block.BlockSize()
+	// )
+	return copyStream(stream, block.BlockSize(), src, dest)
+
+}
+
+func copyStream(stream cipher.Stream, blocksize int, src io.Reader, dest io.Writer) (int, error) {
+
 	var (
-		buf    = make([]byte, 32*1024) // 32 * 1024 is size of io reader/writer buffer
-		stream = cipher.NewCTR(block, iv)
+		buf = make([]byte, 32*1024) // 32 * 1024 is size of io reader/writer buffer
+		nw  = blocksize
 	)
 	for {
 		n, err := src.Read(buf)
 		if n > 0 {
 			stream.XORKeyStream(buf, buf[:n])
-			if _, err := dest.Write(buf[:n]); err != nil {
+			nn, err := dest.Write(buf[:n])
+			if err != nil {
 				return 0, err
 			}
+			nw = nw + nn
 		}
 		if err == io.EOF {
-			break
+			return 0, err
 		}
 		if err != nil {
 			return 0, err
 		}
 	}
-	return 0, nil
-
+	return nw, nil
 }

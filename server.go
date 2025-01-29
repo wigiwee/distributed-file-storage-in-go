@@ -14,6 +14,7 @@ import (
 )
 
 type FileServerOpts struct {
+	EncKey            []byte
 	storageRoot       string
 	PathTransformFunc PathTransformFunc
 	Transport         p2p.Transport
@@ -84,7 +85,8 @@ func (fs *FileServer) Get(key string) (io.Reader, error) {
 		if filesize == 0 {
 			return nil, fmt.Errorf("[%s] dosen't have file %s", peer.RemoteAddr(), key)
 		}
-		n, err := fs.store.Write(key, io.LimitReader(peer, filesize))
+		n, err := fs.store.WriteDecrypt(fs.EncKey, key, io.LimitReader(peer, filesize))
+		// n, err := fs.store.Write(key, io.LimitReader(peer, filesize))
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +114,7 @@ func (fs *FileServer) Store(key string, r io.Reader) error {
 	msg := Message{
 		Payload: MessageStoreFile{
 			Key:  key,
-			Size: size,
+			Size: size + 16,
 		},
 	}
 	if err := fs.broadcast(&msg); err != nil {
@@ -121,17 +123,19 @@ func (fs *FileServer) Store(key string, r io.Reader) error {
 
 	time.Sleep(10 * time.Millisecond)
 
-	//do multiwriter
+	peers := []io.Writer{}
 	for _, peer := range fs.peers {
-		peer.Send([]byte{p2p.IncomingStream})
-		n, err := io.Copy(peer, fileData)
-		if err != nil {
-			return err
-		}
-		fmt.Println("received an written to disk", n)
+		peers = append(peers, peer)
 	}
-	return nil
+	mw := io.MultiWriter(peers...)
+	mw.Write([]byte{p2p.IncomingStream})
+	n, err := copyEncrypt(fs.EncKey, fileData, mw)
+	if err != nil {
+		return err
+	}
+	fmt.Println("received an written to disk", n)
 
+	return nil
 }
 
 func (fs *FileServer) Stop() {
@@ -157,7 +161,7 @@ func (fs *FileServer) OnPeer(p p2p.Peer) error {
 
 	fs.peers[p.RemoteAddr().String()] = p
 
-	log.Printf("connected with remote %s", p.RemoteAddr())
+	log.Printf("[%s] connected with remote %s", fs.Transport.Addr(), p.RemoteAddr())
 	return nil
 }
 
@@ -193,7 +197,7 @@ func (fs *FileServer) bootstrapNetwork() error {
 		}
 
 		go func(addr string) {
-			log.Println("attempting to connect with remote:", addr)
+			log.Printf("[%s] attempting to connect with remote %s\n", fs.Transport.Addr(), addr)
 			if err := fs.Transport.Dial(addr); err != nil {
 				log.Println("dial error:", err)
 				panic(err)
